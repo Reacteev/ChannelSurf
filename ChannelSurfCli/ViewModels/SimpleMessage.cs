@@ -15,7 +15,7 @@ namespace ChannelSurfCli.ViewModels
         public string ts { get; set; }
         public List<Attachments> attachments { get; set; }
         public List<Reaction> reactions { get; set; }
-        public FileAttachment fileAttachment { get; set; }
+        public List<FileAttachment> fileAttachments { get; set; }
 
         public class FileAttachment
         {

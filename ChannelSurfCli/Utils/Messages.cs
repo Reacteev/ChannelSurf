@@ -28,7 +28,7 @@ namespace ChannelSurfCli.Utils
         {
             var messageList = new List<ViewModels.SimpleMessage>();
             messageList.Clear();
-            
+
             var messageListJsonSource = new JArray();
             messageListJsonSource.Clear();
 
@@ -64,37 +64,43 @@ namespace ChannelSurfCli.Utils
                             // deal with "attachments" that are files
                             // specifically, files hosted by Slack
 
-                            // SelectToken returns null not an empty string if nothing is found
-                            var fileUrl = (string)obj.SelectToken("file.url_private");
-                            var fileId = (string)obj.SelectToken("file.id");
-                            var fileMode = (string)obj.SelectToken("file.mode");
-                            var fileName = (string)obj.SelectToken("file.name");
+                            var fileAttachments = new List<ViewModels.SimpleMessage.FileAttachment>();
 
-                            ViewModels.SimpleMessage.FileAttachment fileAttachment = null;
-
-                            if (fileMode != "external" && fileId != null && fileUrl != null)
+                            var files = (JArray)obj.SelectToken("files");
+                            if (files != null)
                             {
-                                Console.WriteLine("Message attachment found with ID " + fileId);
-                                attachmentsToUpload.Add(new Models.Combined.AttachmentsMapping
+                                foreach (var attach in files)
                                 {
-                                    attachmentId = fileId,
-                                    attachmentUrl = fileUrl,
-                                    attachmentChannelId = channelsMapping.slackChannelId,
-                                    attachmentFileName = fileName,
-                                    msChannelName = channelsMapping.displayName
-                                });
+                                    // SelectToken returns null not an empty string if nothing is found
+                                    var fileUrl = (string)attach.SelectToken("url_private");
+                                    var fileId = (string)attach.SelectToken("id");
+                                    var fileMode = (string)attach.SelectToken("mode");
+                                    var fileName = (string)attach.SelectToken("name");
 
-                                // map the attachment to fileAttachment which is used in the viewmodel
+                                    if (fileMode != "external" && fileId != null && fileUrl != null)
+                                    {
+                                        Console.WriteLine("Message attachment found with ID " + fileId);
+                                        attachmentsToUpload.Add(new Models.Combined.AttachmentsMapping
+                                        {
+                                            attachmentId = fileId,
+                                            attachmentUrl = fileUrl,
+                                            attachmentChannelId = channelsMapping.slackChannelId,
+                                            attachmentFileName = fileName,
+                                            msChannelName = channelsMapping.displayName
+                                        });
 
-                                fileAttachment = new ViewModels.SimpleMessage.FileAttachment
-                                {
-                                    id = fileId,
-                                    originalName = (string)obj.SelectToken("file.name"),
-                                    originalTitle = (string)obj.SelectToken("file.title"),
-                                    originalUrl = (string)obj.SelectToken("file.permalink")
-                                };
+                                        // map the attachment to fileAttachment which is used in the viewmodel
+                                        fileAttachments.Add(new ViewModels.SimpleMessage.FileAttachment
+                                        {
+                                            id = fileId,
+                                            originalName = (string)attach.SelectToken("file.name"),
+                                            originalTitle = (string)attach.SelectToken("file.title"),
+                                            originalUrl = (string)attach.SelectToken("file.permalink")
+                                        });
+                                    }
+                                }
                             }
-
+                            
                             // deal with "attachments" that aren't files
 
                             List<ViewModels.SimpleMessage.Attachments> attachmentsList = new List<ViewModels.SimpleMessage.Attachments>();
@@ -172,7 +178,7 @@ namespace ChannelSurfCli.Utils
                                 text = messageText,
                                 ts = messageTs,
                                 user = messageSender,
-                                fileAttachment = fileAttachment,
+                                fileAttachments = fileAttachments,
                                 attachments = attachmentsList,
                             });
                         }
@@ -181,19 +187,22 @@ namespace ChannelSurfCli.Utils
                 }
             }
 
-            if(copyFileAttachments)
+            if (copyFileAttachments)
             {
-                Utils.FileAttachments.ArchiveMessageFileAttachments(aadAccessToken,selectedTeamId,attachmentsToUpload,"fileattachments").Wait();
+                Utils.FileAttachments.ArchiveMessageFileAttachments(aadAccessToken, selectedTeamId, attachmentsToUpload, "fileattachments").Wait();
 
-                foreach(var messageItem in messageList)
+                foreach (var messageItem in messageList)
                 {
-                    if(messageItem.fileAttachment != null)
+                    if (messageItem.fileAttachments.Count > 0)
                     {
-                        var messageItemWithFileAttachment = attachmentsToUpload.Find(w => String.Equals(messageItem.fileAttachment.id,w.attachmentId,StringComparison.CurrentCultureIgnoreCase));
-                        if(messageItemWithFileAttachment != null)
+                        foreach (var attach in messageItem.fileAttachments)
                         {
-                            messageItem.fileAttachment.spoId = messageItemWithFileAttachment.msSpoId;
-                            messageItem.fileAttachment.spoUrl= messageItemWithFileAttachment.msSpoUrl;
+                            var messageItemWithFileAttachment = attachmentsToUpload.Find(w => String.Equals(attach.id, w.attachmentId, StringComparison.CurrentCultureIgnoreCase));
+                            if (messageItemWithFileAttachment != null)
+                            {
+                                attach.spoId = messageItemWithFileAttachment.msSpoId;
+                                attach.spoUrl = messageItemWithFileAttachment.msSpoUrl;
+                            }
                         }
                     }
                 }
@@ -290,22 +299,25 @@ namespace ChannelSurfCli.Utils
             w += ("<br/>");
             w += ("<div id=\"message_text\" style=\"font-weight:normal;white-space:pre-wrap;\">" + simpleMessage.text + "</div>");
 
-            if (simpleMessage.fileAttachment != null)
+            if (simpleMessage.fileAttachments.Count > 0)
             {
-                w += "<div style=\"margin-left:1%;margin-top:1%;border-left-style:solid;border-left-color:LightGrey;\">";
-                w += "<div style=\"margin-left:1%;\">";
-                if(simpleMessage.fileAttachment.spoId != null)
+                foreach (var attach in simpleMessage.fileAttachments)
                 {
-                    w += "<span style=\"font-weight:lighter;\"> <a href=\"" + simpleMessage.fileAttachment.spoUrl + "\"> File Attachment </a> </span>";
+                    w += "<div style=\"margin-left:1%;margin-top:1%;border-left-style:solid;border-left-color:LightGrey;\">";
+                    w += "<div style=\"margin-left:1%;\">";
+                    if (attach.spoId != null)
+                    {
+                        w += "<span style=\"font-weight:lighter;\"> <a href=\"" + attach.spoUrl + "\"> File Attachment </a> </span>";
+                    }
+                    w += "<div>";
+                    w += "<span style=\"font-weight:lighter;\"> ";
+                    w += attach.originalTitle + "<br/>";
+                    w += attach.originalUrl + " <br/>";
+                    w += "</span>";
+                    w += "</div>";
+                    w += "</div>";
+                    w += "</div>";
                 }
-                w += "<div>";
-                w += "<span style=\"font-weight:lighter;\"> ";
-                w += simpleMessage.fileAttachment.originalTitle + "<br/>";
-                w += simpleMessage.fileAttachment.originalUrl + " <br/>";
-                w += "</span>";
-                w += "</div>";
-                w += "</div>";
-                w += "</div>";
             }
             if (simpleMessage.attachments != null)
             {
@@ -337,7 +349,7 @@ namespace ChannelSurfCli.Utils
 
                             foreach (var field in attachment.fields)
                             {
-                                if (true) 
+                                if (true)
                                 {
                                     w += "<tr><td>";
                                     w += "<div>" + field.title + "</div>";
