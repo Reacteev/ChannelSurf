@@ -1,4 +1,10 @@
-# (Fork to fix attachments)
+# Fork info
+ - fix attachments (I guess Slack has changed the json they are generating)
+ - HTML is now reuploaded at each run in case you want to change the display (other files are still skiped)
+ - User mention in message are displayed more nicely
+ - Date are displayed more nicely
+
+----
 
 # Channel Surf for Microsoft Teams 
 
