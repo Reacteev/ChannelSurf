@@ -162,7 +162,7 @@ namespace ChannelSurfCli.Utils
                      w.WriteLine(JsonConvert.SerializeObject(channelsMapping));
                 }
             }
-            Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, jsonFileName, "/channelsurf/combinedChannelsMapping.json").Wait();
+            Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, jsonFileName, "/channelsurf/combinedChannelsMapping.json", false).Wait();
         }
 
         public static string CreateMsTeamsChannelFolder(string aadAccessToken, string teamId, string channelName)

@@ -19,7 +19,7 @@ function bulkUpsert(docs) {
     if (!docs) throw new Error("The array is undefined or null.");
 
     var docsLength = docs.length;
-    if (docsLength == 0) {
+    if (docsLength === 0) {
         getContext().getResponse().setBody(0);
         return;
     }

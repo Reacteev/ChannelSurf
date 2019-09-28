@@ -62,7 +62,7 @@ namespace ChannelSurfCli.Utils
                     fileToUpload = combinedAttachmentsMapping.attachmentUrl;
                 }
                 var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + combinedAttachmentsMapping.attachmentFileName;
-                fileIdAndUrl = await UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, fileToUpload, pathToItem);
+                fileIdAndUrl = await UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, fileToUpload, pathToItem, false);
                 combinedAttachmentsMapping.msSpoId = fileIdAndUrl.Item1;
                 combinedAttachmentsMapping.msSpoUrl = fileIdAndUrl.Item2;
                 File.Delete(fileToUpload);
@@ -82,7 +82,7 @@ namespace ChannelSurfCli.Utils
             return;
         }
 
-        public static Tuple<string,string> CheckIfFileExistsOnTeamsChannel(string aadAccessToken, string selectedTeamId, string pathToItem)
+        public static Tuple<string, string> CheckIfFileExistsOnTeamsChannel(string aadAccessToken, string selectedTeamId, string pathToItem)
         {
             var authHelper = new Utils.O365.AuthenticationHelper() { AccessToken = aadAccessToken };
             Microsoft.Graph.GraphServiceClient gcs = new Microsoft.Graph.GraphServiceClient(authHelper);
@@ -97,24 +97,27 @@ namespace ChannelSurfCli.Utils
             {
                 fileExistsResult = null;
             }
-            
+
             if (fileExistsResult == null)
             {
-                return new Tuple<string,string>("","");
+                return new Tuple<string, string>("", "");
             }
             Console.WriteLine("Attachment already exists.  We won't replace it. " + pathToItem);
-            return new Tuple<string,string>(fileExistsResult.Id,fileExistsResult.WebUrl);
+            return new Tuple<string, string>(fileExistsResult.Id, fileExistsResult.WebUrl);
         }
 
-        public static async Task<Tuple<string,string>> UploadFileToTeamsChannel(string aadAccessToken, string selectedTeamId, string filePath, string pathToItem) 
+        public static async Task<Tuple<string,string>> UploadFileToTeamsChannel(string aadAccessToken, string selectedTeamId, string filePath, string pathToItem, bool overwrite) 
         {
             var authHelper = new Utils.O365.AuthenticationHelper() { AccessToken = aadAccessToken };
             Microsoft.Graph.GraphServiceClient gcs = new Microsoft.Graph.GraphServiceClient(authHelper);
 
-            var fileExists = CheckIfFileExistsOnTeamsChannel(aadAccessToken, selectedTeamId, pathToItem);
-            if (fileExists.Item1 != "") 
+            if (!overwrite)
             {
-                return new Tuple<string,string>(fileExists.Item1,fileExists.Item2);
+                var fileExists = CheckIfFileExistsOnTeamsChannel(aadAccessToken, selectedTeamId, pathToItem);
+                if (fileExists.Item1 != "")
+                {
+                    return new Tuple<string, string>(fileExists.Item1, fileExists.Item2);
+                }
             }
 
             Microsoft.Graph.UploadSession uploadSession = null;
@@ -159,7 +162,7 @@ namespace ChannelSurfCli.Utils
                     }
                     Console.WriteLine("Upload of attachment to MS Teams completed " + pathToItem);
                     Console.WriteLine("SPo ID is " + itemResult.Id);
-                    return new Tuple<string,string>(itemResult.Id, itemResult.WebUrl);
+                    return new Tuple<string, string>(itemResult.Id, itemResult.WebUrl);
                 }
             }
             catch (Exception ex)

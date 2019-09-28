@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ChannelSurfCli.Utils
 {
@@ -208,7 +209,7 @@ namespace ChannelSurfCli.Utils
                 }
             }
             Utils.Messages.CreateSlackMessageJsonArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId);
-            Utils.Messages.CreateSlackMessageHtmlArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId);
+            Utils.Messages.CreateSlackMessageHtmlArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, slackUserList);
 
             return attachmentsToUpload;
         }
@@ -240,13 +241,13 @@ namespace ChannelSurfCli.Utils
                     }
                 }
                 var pathToItem = "/" + channelsMapping.displayName + "/channelsurf/" + "messages/json" + "/" + filenameToAdd;
-                Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, Path.Combine(basePath, channelsMapping.slackChannelName, filenameToAdd), pathToItem).Wait();
+                Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, Path.Combine(basePath, channelsMapping.slackChannelName, filenameToAdd), pathToItem, false).Wait();
             }
             return;
         }
 
         static void CreateSlackMessageHtmlArchiveFile(String basePath, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleMessage> messageList,
-            String aadAccessToken, string selectedTeamId)
+            String aadAccessToken, string selectedTeamId, List<ViewModels.SimpleUser> slackUserList)
         {
             int messageIndexPosition = 0;
 
@@ -267,20 +268,30 @@ namespace ChannelSurfCli.Utils
                             numOfMessagesToTake = messageList.Count - messageIndexPosition;
                         }
                         StringBuilder fileBody = new StringBuilder();
+                        fileBody.Append(@"<html>
+                            <head>
+                            <style>
+                            @import url('https://fonts.googleapis.com/css?family=Lato:400,900');
+                            body {
+	                            font-family: 'Lato', sans-serif;
+                            }
+                            </style>
+                            </head>
+                        ");
                         fileBody.Append("<body>");
                         fileBody.AppendLine("");
                         for (int i = 0; i < numOfMessagesToTake; i++)
                         {
-                            var messageAsHtml = MessageToHtml(messageList[messageIndexPosition + i], channelsMapping);
+                            var messageAsHtml = MessageToHtml(messageList[messageIndexPosition + i], channelsMapping, slackUserList);
                             fileBody.AppendLine(messageAsHtml);
                         }
-                        fileBody.AppendLine("</body>");
+                        fileBody.AppendLine("</body></html>");
                         messageIndexPosition += numOfMessagesToTake;
                         w.WriteLine(fileBody);
                     }
                 }
                 var pathToItem = "/" + channelsMapping.displayName + "/channelsurf/" + "messages/html" + "/" + filenameToAdd;
-                Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, Path.Combine(basePath, channelsMapping.slackChannelName, filenameToAdd), pathToItem).Wait();
+                Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, Path.Combine(basePath, channelsMapping.slackChannelName, filenameToAdd), pathToItem, true).Wait();
             }
 
             return;
@@ -288,16 +299,48 @@ namespace ChannelSurfCli.Utils
 
         // this is ugly and should/will eventually be replaced by its own class
 
-        public static string MessageToHtml(ViewModels.SimpleMessage simpleMessage, Models.Combined.ChannelsMapping channelsMapping)
+        private static string NiceDate(string epoch)
+        {
+            var seconds = float.Parse(epoch, System.Globalization.CultureInfo.InvariantCulture);
+            var date = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(seconds);
+            return date.ToString("dd/MM/yyyy HH:mm");
+        }
+
+        private static string NiceMention(string text, List<ViewModels.SimpleUser> slackUserList)
+        {
+            var nice = Regex.Replace(text, @"<@(\w+)>", m =>
+            {
+                var user = m.Groups[1].Value;
+                if (user != "USLACKBOT")
+                {
+                    var simpleUser = slackUserList.FirstOrDefault(w => w.userId == user);
+                    if (simpleUser != null)
+                    {
+                        return simpleUser.name;
+                    }
+                    else
+                    {
+                        return user;
+                    }
+                }
+                else
+                {
+                    return "SlackBot";
+                }
+            });
+            return nice;
+        }
+
+        public static string MessageToHtml(ViewModels.SimpleMessage simpleMessage, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleUser> slackUserList)
         {
             string w = "";
             w += "<div>";
             w += ("<div id=\"" + simpleMessage.id + "\">");
             w += ("<span id=\"user_id\" style=\"font-weight:bold;\">" + simpleMessage.user + "</span>");
             w += ("&nbsp;");
-            w += ("<span id=\"epoch_time\" style=\"font-weight:lighter;\">" + simpleMessage.ts + "</span>");
+            w += ("<span id=\"epoch_time\" style=\"font-weight:lighter;\">" + NiceDate(simpleMessage.ts) + "</span>");
             w += ("<br/>");
-            w += ("<div id=\"message_text\" style=\"font-weight:normal;white-space:pre-wrap;\">" + simpleMessage.text + "</div>");
+            w += ("<div id=\"message_text\" style=\"font-weight:normal;white-space:pre-wrap;\">" + NiceMention(simpleMessage.text, slackUserList) + "</div>");
 
             if (simpleMessage.fileAttachments.Count > 0)
             {
