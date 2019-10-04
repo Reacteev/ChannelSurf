@@ -38,35 +38,43 @@ namespace ChannelSurfCli.Utils
             Tuple<string,string> fileIdAndUrl;
             try
             {
-                string fileToUpload = "";
-                if(!combinedAttachmentsMapping.attachmentUrl.StartsWith("/"))
+                var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + combinedAttachmentsMapping.attachmentFileName;
+                var fileExists = CheckIfFileExistsOnTeamsChannel(aadAccessToken, selectedTeamId, pathToItem);
+                if (fileExists.Item1 != "")
+                {
+                    string fileToUpload = "";
+                    if (!combinedAttachmentsMapping.attachmentUrl.StartsWith("/"))
                     {
-                    Console.WriteLine("Downloading attachment to local file system " + combinedAttachmentsMapping.attachmentId);
-                    var request = new HttpClient();
-                    using (HttpResponseMessage response =
-                        await request.GetAsync(combinedAttachmentsMapping.attachmentUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
-                    {
-                        // do something with response   
-                        using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                        Console.WriteLine("Downloading attachment to local file system " + combinedAttachmentsMapping.attachmentId);
+                        var request = new HttpClient();
+                        using (HttpResponseMessage response =
+                            await request.GetAsync(combinedAttachmentsMapping.attachmentUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
                         {
-                            fileToUpload = Path.GetTempFileName();
-                            using (Stream streamToWriteTo = File.Open(fileToUpload, FileMode.Create))
+                            // do something with response   
+                            using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
                             {
-                                await streamToReadFrom.CopyToAsync(streamToWriteTo);
+                                fileToUpload = Path.GetTempFileName();
+                                using (Stream streamToWriteTo = File.Open(fileToUpload, FileMode.Create))
+                                {
+                                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
+                                }
                             }
                         }
                     }
+                    else
+                    {
+                        fileToUpload = combinedAttachmentsMapping.attachmentUrl;
+                    }
+                    fileIdAndUrl = await UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, fileToUpload, pathToItem, false);
+                    combinedAttachmentsMapping.msSpoId = fileIdAndUrl.Item1;
+                    combinedAttachmentsMapping.msSpoUrl = fileIdAndUrl.Item2;
+                    File.Delete(fileToUpload);
+                    Console.WriteLine("Deleting local copy of attachment " + combinedAttachmentsMapping.attachmentId);
                 }
                 else
                 {
-                    fileToUpload = combinedAttachmentsMapping.attachmentUrl;
+                    Console.WriteLine("File exists, skipping");
                 }
-                var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + combinedAttachmentsMapping.attachmentFileName;
-                fileIdAndUrl = await UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, fileToUpload, pathToItem, false);
-                combinedAttachmentsMapping.msSpoId = fileIdAndUrl.Item1;
-                combinedAttachmentsMapping.msSpoUrl = fileIdAndUrl.Item2;
-                File.Delete(fileToUpload);
-                Console.WriteLine("Deleting local copy of attachment " + combinedAttachmentsMapping.attachmentId);
             }
             catch (Exception ex)
             {
