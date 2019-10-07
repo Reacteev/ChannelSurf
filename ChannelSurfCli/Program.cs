@@ -63,7 +63,8 @@ namespace ChannelSurfCli
                     .AddEnvironmentVariables();
                 Configuration = builder.Build();
 
-
+                bool savetoken = Array.Exists(args, elt => elt == "--savetoken");
+                
                 Console.WriteLine("");
                 Console.WriteLine("****************************************************************************************************");
                 Console.WriteLine("Welcome to Channel Surf!");
@@ -105,17 +106,28 @@ namespace ChannelSurfCli
                 Console.WriteLine("****************************************************************************************************");
                 Console.WriteLine("Let's get started! Sign in to Microsoft with your Teams credentials:");
 
-                authenticationResult = UserLogin();
-                var aadAccessToken = authenticationResult.AccessToken;
-                
-                if (String.IsNullOrEmpty(authenticationResult.AccessToken))
+                var aadAccessToken= "";
+                if (savetoken && File.Exists(".token"))
                 {
-                    Console.WriteLine("Something went wrong.  Please try again!");
-                    Environment.Exit(1);
+                    aadAccessToken = File.ReadAllText(".token");
                 }
                 else
                 {
-                    Console.WriteLine("You've successfully signed in.  Welcome " + authenticationResult.UserInfo.DisplayableId);
+                    authenticationResult = UserLogin();
+                    aadAccessToken = authenticationResult.AccessToken;
+                    if (String.IsNullOrEmpty(aadAccessToken))
+                    {
+                        Console.WriteLine("Something went wrong.  Please try again!");
+                        Environment.Exit(1);
+                    }
+                    else
+                    {
+                        Console.WriteLine("You've successfully signed in.  Welcome " + authenticationResult.UserInfo.DisplayableId);
+                    }
+                    if (savetoken)
+                    {
+                        File.WriteAllText(".token", aadAccessToken);
+                    }
                 }
 
                 var selectedTeamId = Utils.Channels.SelectJoinedTeam(aadAccessToken);

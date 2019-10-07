@@ -39,41 +39,40 @@ namespace ChannelSurfCli.Utils
             try
             {
                 var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + combinedAttachmentsMapping.attachmentFileName;
-                var fileExists = CheckIfFileExistsOnTeamsChannel(aadAccessToken, selectedTeamId, pathToItem);
-                if (fileExists.Item1 != "")
+
+                bool deleteFile = true;
+                string fileToUpload = "";
+                if (combinedAttachmentsMapping.attachmentUrl.StartsWith("https") || combinedAttachmentsMapping.attachmentUrl.StartsWith("http"))
                 {
-                    string fileToUpload = "";
-                    if (!combinedAttachmentsMapping.attachmentUrl.StartsWith("/"))
+                    Console.WriteLine("Downloading attachment to local file system " + combinedAttachmentsMapping.attachmentId);
+                    var request = new HttpClient();
+                    using (HttpResponseMessage response =
+                        await request.GetAsync(combinedAttachmentsMapping.attachmentUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
                     {
-                        Console.WriteLine("Downloading attachment to local file system " + combinedAttachmentsMapping.attachmentId);
-                        var request = new HttpClient();
-                        using (HttpResponseMessage response =
-                            await request.GetAsync(combinedAttachmentsMapping.attachmentUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+                        // do something with response   
+                        using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
                         {
-                            // do something with response   
-                            using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                            fileToUpload = Path.GetTempFileName();
+                            using (Stream streamToWriteTo = File.Open(fileToUpload, FileMode.Create))
                             {
-                                fileToUpload = Path.GetTempFileName();
-                                using (Stream streamToWriteTo = File.Open(fileToUpload, FileMode.Create))
-                                {
-                                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
-                                }
+                                await streamToReadFrom.CopyToAsync(streamToWriteTo);
                             }
                         }
                     }
-                    else
-                    {
-                        fileToUpload = combinedAttachmentsMapping.attachmentUrl;
-                    }
-                    fileIdAndUrl = await UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, fileToUpload, pathToItem, false);
-                    combinedAttachmentsMapping.msSpoId = fileIdAndUrl.Item1;
-                    combinedAttachmentsMapping.msSpoUrl = fileIdAndUrl.Item2;
-                    File.Delete(fileToUpload);
-                    Console.WriteLine("Deleting local copy of attachment " + combinedAttachmentsMapping.attachmentId);
                 }
                 else
                 {
-                    Console.WriteLine("File exists, skipping");
+                    fileToUpload = combinedAttachmentsMapping.attachmentUrl;
+                    deleteFile = false;
+                }
+
+                fileIdAndUrl = await UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, fileToUpload, pathToItem, false);
+                combinedAttachmentsMapping.msSpoId = fileIdAndUrl.Item1;
+                combinedAttachmentsMapping.msSpoUrl = fileIdAndUrl.Item2;
+                if (deleteFile)
+                {
+                    File.Delete(fileToUpload);
+                    Console.WriteLine("Deleting local copy of attachment " + combinedAttachmentsMapping.attachmentId);
                 }
             }
             catch (Exception ex)

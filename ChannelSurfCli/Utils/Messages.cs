@@ -1,4 +1,4 @@
-using ChannelSurfCli.Models;
+﻿using ChannelSurfCli.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -77,6 +77,11 @@ namespace ChannelSurfCli.Utils
                                     var fileId = (string)attach.SelectToken("id");
                                     var fileMode = (string)attach.SelectToken("mode");
                                     var fileName = (string)attach.SelectToken("name");
+                                    var local = (string)attach.SelectToken("url_private_download");
+                                    if (local != null)
+                                    {
+                                        fileUrl = Path.Join(basePath, local);
+                                    }
 
                                     if (fileMode != "external" && fileId != null && fileUrl != null)
                                     {
@@ -94,9 +99,9 @@ namespace ChannelSurfCli.Utils
                                         fileAttachments.Add(new ViewModels.SimpleMessage.FileAttachment
                                         {
                                             id = fileId,
-                                            originalName = (string)attach.SelectToken("file.name"),
-                                            originalTitle = (string)attach.SelectToken("file.title"),
-                                            originalUrl = (string)attach.SelectToken("file.permalink")
+                                            originalName = (string)attach.SelectToken("name"),
+                                            originalTitle = (string)attach.SelectToken("title"),
+                                            originalUrl = (string)attach.SelectToken("permalink")
                                         });
                                     }
                                 }
@@ -331,6 +336,19 @@ namespace ChannelSurfCli.Utils
             return nice;
         }
 
+        private static string NiceEmoji(string text)
+        {
+            return text
+                .Replace(":slightly_smiling_face:", "🙂")
+                .Replace(":grinn", "😁")
+                .Replace(":ghost", "👻");
+        }
+
+        private static string NiceText(string text, List<ViewModels.SimpleUser> slackUserList)
+        {
+            return NiceEmoji(NiceMention(text, slackUserList));
+        }
+
         public static string MessageToHtml(ViewModels.SimpleMessage simpleMessage, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleUser> slackUserList)
         {
             string w = "";
@@ -340,22 +358,33 @@ namespace ChannelSurfCli.Utils
             w += ("&nbsp;");
             w += ("<span id=\"epoch_time\" style=\"font-weight:lighter;\">" + NiceDate(simpleMessage.ts) + "</span>");
             w += ("<br/>");
-            w += ("<div id=\"message_text\" style=\"font-weight:normal;white-space:pre-wrap;\">" + NiceMention(simpleMessage.text, slackUserList) + "</div>");
+            w += ("<div id=\"message_text\" style=\"font-weight:normal;white-space:pre-wrap;\">" + NiceText(simpleMessage.text, slackUserList) + "</div>");
 
             if (simpleMessage.fileAttachments.Count > 0)
             {
                 foreach (var attach in simpleMessage.fileAttachments)
                 {
+                    var isImg = attach.originalUrl.EndsWith(".jpg") || attach.originalUrl.EndsWith(".png") || attach.originalUrl.EndsWith(".gif");
                     w += "<div style=\"margin-left:1%;margin-top:1%;border-left-style:solid;border-left-color:LightGrey;\">";
                     w += "<div style=\"margin-left:1%;\">";
                     if (attach.spoId != null)
                     {
-                        w += "<span style=\"font-weight:lighter;\"> <a href=\"" + attach.spoUrl + "\"> File Attachment </a> </span>";
+                        if (isImg)
+                        {
+                            w += "<img style='width:25%' src='" + attach.spoUrl + "' />";
+                        }
+                        else
+                        {
+                            w += "<span style=\"font-weight:lighter;\"> <a href=\"" + attach.spoUrl + "\"> File Attachment </a> </span>";
+                        }
                     }
                     w += "<div>";
-                    w += "<span style=\"font-weight:lighter;\"> ";
-                    w += attach.originalTitle + "<br/>";
-                    w += attach.originalUrl + " <br/>";
+                    if (!isImg)
+                    {
+                        w += "<span style=\"font-weight:lighter;\"> ";
+                        w += attach.originalTitle + "<br/>";
+                        //w += attach.originalUrl + " <br/>";
+                    }
                     w += "</span>";
                     w += "</div>";
                     w += "</div>";
