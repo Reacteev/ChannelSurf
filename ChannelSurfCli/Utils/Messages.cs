@@ -78,7 +78,7 @@ namespace ChannelSurfCli.Utils
                                     var fileMode = (string)attach.SelectToken("mode");
                                     var fileName = (string)attach.SelectToken("name");
                                     var local = (string)attach.SelectToken("url_private_download");
-                                    if (local != null)
+                                    if (local != null && local.StartsWith("_files"))
                                     {
                                         fileUrl = Path.Join(basePath, local);
                                     }
