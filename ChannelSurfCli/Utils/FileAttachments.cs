@@ -38,7 +38,9 @@ namespace ChannelSurfCli.Utils
             Tuple<string,string> fileIdAndUrl;
             try
             {
-                var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + combinedAttachmentsMapping.attachmentFileName;
+                var filename = combinedAttachmentsMapping.attachmentFileName;
+                filename = filename.Replace(":", "-");
+                var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + filename;
 
                 bool deleteFile = true;
                 string fileToUpload = "";
