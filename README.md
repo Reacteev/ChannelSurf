@@ -3,6 +3,7 @@
  - HTML is now reuploaded at each run in case you want to change the display (other files are still skiped)
  - User mention in message are displayed more nicely
  - Date are displayed more nicely and can be converted to local timezone
+ - Customize number of messages per output file (both html and json)
 
 ----
 
