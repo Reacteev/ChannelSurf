@@ -2,7 +2,7 @@
  - fix attachments (I guess Slack has changed the json they are generating)
  - HTML is now reuploaded at each run in case you want to change the display (other files are still skiped)
  - User mention in message are displayed more nicely
- - Date are displayed more nicely
+ - Date are displayed more nicely and can be converted to local timezone
 
 ----
 
@@ -139,8 +139,10 @@ IMPORTANT: You Slack export contains a security token that can be used by ANYONE
 * Launch the Microsoft Teams app and make sure you are a member of an existing Team.  If not - create a Team!
 * Open a command prompt, and navigate to the ChannelSurfCli folder
 * Run one of the two following commands, based on whether you're creating channels from a JSON file or a Slack Teams export
-   * dotnet run /path/to/channels.json
-   * dotnet run /path/to/slack/archive/myexport.zip (replace myexport.zip with your archive filename)
+   * dotnet run --file /path/to/channels.json
+   * dotnet run --file /path/to/slack/archive/myexport.zip (replace myexport.zip with your archive filename)
+* You can run without arguments to display usage info and available command line options
+   * dotnet run
 * If prompted, provide your Active Directory Tenant Name and Application Id
 * Follow the instructions provided to sign in:
    * Start a web browser and go to https://aka.ms/devicelogin - we strongly suggest you use your web browser's "private mode".

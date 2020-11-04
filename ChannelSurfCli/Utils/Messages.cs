@@ -13,11 +13,11 @@ namespace ChannelSurfCli.Utils
     public class Messages
     {
         public static void ScanMessagesByChannel(List<Models.Combined.ChannelsMapping> channelsMapping, string basePath,
-            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments)
+            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments, bool formatTimeToLocal)
         {
             foreach (var v in channelsMapping)
             {
-                var channelAttachmentsToUpload = GetAndUploadMessages(v, basePath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments);
+                var channelAttachmentsToUpload = GetAndUploadMessages(v, basePath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments, formatTimeToLocal);
             }
 
             return;
@@ -25,7 +25,7 @@ namespace ChannelSurfCli.Utils
 
 
         static List<Models.Combined.AttachmentsMapping> GetAndUploadMessages(Models.Combined.ChannelsMapping channelsMapping, string basePath,
-            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments)
+            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments, bool formatTimeToLocal)
         {
             var messageList = new List<ViewModels.SimpleMessage>();
             messageList.Clear();
@@ -214,7 +214,7 @@ namespace ChannelSurfCli.Utils
                 }
             }
             Utils.Messages.CreateSlackMessageJsonArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId);
-            Utils.Messages.CreateSlackMessageHtmlArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, slackUserList);
+            Utils.Messages.CreateSlackMessageHtmlArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, slackUserList, formatTimeToLocal);
 
             return attachmentsToUpload;
         }
@@ -252,7 +252,7 @@ namespace ChannelSurfCli.Utils
         }
 
         static void CreateSlackMessageHtmlArchiveFile(String basePath, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleMessage> messageList,
-            String aadAccessToken, string selectedTeamId, List<ViewModels.SimpleUser> slackUserList)
+            String aadAccessToken, string selectedTeamId, List<ViewModels.SimpleUser> slackUserList, bool formatTimeToLocal)
         {
             int messageIndexPosition = 0;
 
@@ -287,7 +287,7 @@ namespace ChannelSurfCli.Utils
                         fileBody.AppendLine("");
                         for (int i = 0; i < numOfMessagesToTake; i++)
                         {
-                            var messageAsHtml = MessageToHtml(messageList[messageIndexPosition + i], channelsMapping, slackUserList);
+                            var messageAsHtml = MessageToHtml(messageList[messageIndexPosition + i], channelsMapping, slackUserList, formatTimeToLocal);
                             fileBody.AppendLine(messageAsHtml);
                         }
                         fileBody.AppendLine("</body></html>");
@@ -304,10 +304,14 @@ namespace ChannelSurfCli.Utils
 
         // this is ugly and should/will eventually be replaced by its own class
 
-        private static string NiceDate(string epoch)
+        private static string NiceDate(string epoch, bool formatTimeToLocal)
         {
             var seconds = float.Parse(epoch, System.Globalization.CultureInfo.InvariantCulture);
             var date = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(seconds);
+            if (formatTimeToLocal)
+            {
+                date = date.ToLocalTime();
+            }
             return date.ToString("dd/MM/yyyy HH:mm");
         }
 
@@ -349,14 +353,14 @@ namespace ChannelSurfCli.Utils
             return NiceEmoji(NiceMention(text, slackUserList));
         }
 
-        public static string MessageToHtml(ViewModels.SimpleMessage simpleMessage, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleUser> slackUserList)
+        public static string MessageToHtml(ViewModels.SimpleMessage simpleMessage, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleUser> slackUserList, bool formatTimeToLocal)
         {
             string w = "";
             w += "<div>";
             w += ("<div id=\"" + simpleMessage.id + "\">");
             w += ("<span id=\"user_id\" style=\"font-weight:bold;\">" + simpleMessage.user + "</span>");
             w += ("&nbsp;");
-            w += ("<span id=\"epoch_time\" style=\"font-weight:lighter;\">" + NiceDate(simpleMessage.ts) + "</span>");
+            w += ("<span id=\"epoch_time\" style=\"font-weight:lighter;\">" + NiceDate(simpleMessage.ts, formatTimeToLocal) + "</span>");
             w += ("<br/>");
             w += ("<div id=\"message_text\" style=\"font-weight:normal;white-space:pre-wrap;\">" + NiceText(simpleMessage.text, slackUserList) + "</div>");
 

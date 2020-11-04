@@ -13,13 +13,16 @@ namespace ChannelSurfCli
 {
     class Options
     {
-        [Option()]
+        [Option(Default = false, HelpText = "Save auth token in local .token file to avoid going through auth flow.")]
         public bool SaveToken { get; set; }
 
-        [Option(Required = true)]
+        [Option(Default = false, HelpText = "Format messages date/time to local timezone.")]
+        public bool FormatTimeToLocal { get; set; }
+
+        [Option(Required = true, HelpText = "Input file to process, either channels.json or full Slack export.")]
         public string File { get; set; }
 
-        [Option()]
+        [Option(HelpText = "Process only given channel.")]
         public string Only { get; set; }
     }
 
@@ -189,7 +192,7 @@ namespace ChannelSurfCli
                         Console.WriteLine("Scanning users in Slack archive - done");
 
                         Console.WriteLine("Scanning messages in Slack channels");
-                        Utils.Messages.ScanMessagesByChannel(msTeamsChannelsWithSlackProps, slackArchiveTempPath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments);
+                        Utils.Messages.ScanMessagesByChannel(msTeamsChannelsWithSlackProps, slackArchiveTempPath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments, options.FormatTimeToLocal);
                         Console.WriteLine("Scanning messages in Slack channels - done");
                     }
 
