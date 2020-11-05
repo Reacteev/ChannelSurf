@@ -123,7 +123,8 @@ namespace ChannelSurfCli
                     Console.WriteLine("Let's get started! Sign in to Microsoft with your Teams credentials:");
 
                     var aadAccessToken = "";
-                    if (options.SaveToken && File.Exists(".token"))
+                    var tokenExists = File.Exists(".token");
+                    if (options.SaveToken && tokenExists)
                     {
                         aadAccessToken = File.ReadAllText(".token");
                     }
@@ -149,6 +150,10 @@ namespace ChannelSurfCli
                     var selectedTeamId = Utils.Channels.SelectJoinedTeam(aadAccessToken);
                     if (selectedTeamId == "")
                     {
+                        if (options.SaveToken && tokenExists)
+                        {
+                            File.Delete(".token");
+                        }
                         Environment.Exit(0);
                     }
 
