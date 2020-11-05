@@ -16,5 +16,13 @@ namespace ChannelSurfCli.Models
             public string description { get; set; } = "";
             public string folderId { get; set; } = "";
         }
+
+        public class User
+        {
+            public string id { get; set; }
+            public string mail { get; set; }
+            public string userPrincipalName { get; set; }
+            public string displayName { get; set; }
+        }
     }
 }

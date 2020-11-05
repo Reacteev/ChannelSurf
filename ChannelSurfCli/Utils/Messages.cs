@@ -335,7 +335,7 @@ namespace ChannelSurfCli.Utils
                     var simpleUser = slackUserList.FirstOrDefault(w => w.userId == user);
                     if (simpleUser != null)
                     {
-                        return simpleUser.name;
+                        return simpleUser.displayName();
                     }
                     else
                     {
@@ -378,7 +378,7 @@ namespace ChannelSurfCli.Utils
             {
                 foreach (var attach in simpleMessage.fileAttachments)
                 {
-                    var isImg = attach.originalUrl.EndsWith(".jpg") || attach.originalUrl.EndsWith(".png") || attach.originalUrl.EndsWith(".gif");
+                    var isImg = attach.originalUrl.EndsWith(".jpg") || attach.originalUrl.EndsWith(".jpeg") || attach.originalUrl.EndsWith(".png") || attach.originalUrl.EndsWith(".gif");
                     w += "<div style=\"margin-left:1%;margin-top:1%;border-left-style:solid;border-left-color:LightGrey;\">";
                     w += "<div style=\"margin-left:1%;\">";
                     if (attach.spoId != null)
@@ -467,7 +467,7 @@ namespace ChannelSurfCli.Utils
                     var simpleUser = slackUserList.FirstOrDefault(w => w.userId == user);
                     if (simpleUser != null)
                     {
-                        return simpleUser.name;
+                        return simpleUser.displayName();
                     }
 
                 }

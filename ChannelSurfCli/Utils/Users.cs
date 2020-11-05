@@ -11,7 +11,7 @@ namespace ChannelSurfCli.Utils
 {
     public class Users
     {
-        public static List<ViewModels.SimpleUser> ScanUsers(string combinedPath)
+        public static List<ViewModels.SimpleUser> ScanUsers(string combinedPath, List<Models.MsTeams.User> msTeamsUserList)
         {
             var simpleUserList = new List<ViewModels.SimpleUser>();
             using (FileStream fs = new FileStream(combinedPath, FileMode.Open, FileAccess.Read))
@@ -31,6 +31,7 @@ namespace ChannelSurfCli.Utils
                         var email = (string)obj.SelectToken("profile.email");
                         var real_name = (string)obj.SelectToken("profile.real_name_normalized");
                         var is_bot = (bool)obj.SelectToken("is_bot");
+                        var msTeamUser = msTeamsUserList.Find(user => user.mail.Equals(email, StringComparison.CurrentCultureIgnoreCase) || user.displayName.Equals(real_name, StringComparison.CurrentCultureIgnoreCase));
 
                         simpleUserList.Add(new ViewModels.SimpleUser()
                         {
@@ -39,6 +40,7 @@ namespace ChannelSurfCli.Utils
                             email = email,
                             real_name = real_name,
                             is_bot = is_bot,
+                            msTeamUser = msTeamUser
                         });
 
                     }

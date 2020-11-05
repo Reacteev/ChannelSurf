@@ -208,8 +208,12 @@ namespace ChannelSurfCli
                             copyFileAttachments = true;
                         }
 
+                        Console.WriteLine("Scanning users in Ms Teams organization");
+                        var msTeamsUserList = Utils.O365.getUsers(aadAccessToken);
+                        Console.WriteLine("Scanning users in Ms Teams organization - done");
+
                         Console.WriteLine("Scanning users in Slack archive");
-                        var slackUserList = Utils.Users.ScanUsers(Path.Combine(slackArchiveBasePath, "users.json"));
+                        var slackUserList = Utils.Users.ScanUsers(Path.Combine(slackArchiveBasePath, "users.json"), msTeamsUserList);
                         Console.WriteLine("Scanning users in Slack archive - done");
 
                         Console.WriteLine("Scanning messages in Slack channels");
