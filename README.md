@@ -5,6 +5,7 @@
  - Date are displayed more nicely and can be converted to local timezone
  - Customize number of messages per output file (both html and json)
  - Users from MS Teams are loaded and mapped to Slack users to use Teams user displayName when available
+ - Allow customization of all SharePoint paths to store files
 
 ----
 

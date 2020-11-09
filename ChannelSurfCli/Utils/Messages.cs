@@ -13,11 +13,12 @@ namespace ChannelSurfCli.Utils
     public class Messages
     {
         public static void ScanMessagesByChannel(List<Models.Combined.ChannelsMapping> channelsMapping, string basePath,
-            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments, bool formatTimeToLocal, int nbMessagesPerFile)
+            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments, bool formatTimeToLocal,
+            int nbMessagesPerFile, string fileAttachmentsPath, AttachmentIdFilePathMode attachmentIdMode, string jsonMessagesPath, string htmlMessagesPath)
         {
             foreach (var v in channelsMapping)
             {
-                var channelAttachmentsToUpload = GetAndUploadMessages(v, basePath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments, formatTimeToLocal, nbMessagesPerFile);
+                var channelAttachmentsToUpload = GetAndUploadMessages(v, basePath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments, formatTimeToLocal, nbMessagesPerFile, fileAttachmentsPath, attachmentIdMode, jsonMessagesPath, htmlMessagesPath);
             }
 
             return;
@@ -25,7 +26,8 @@ namespace ChannelSurfCli.Utils
 
 
         static List<Models.Combined.AttachmentsMapping> GetAndUploadMessages(Models.Combined.ChannelsMapping channelsMapping, string basePath,
-            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments, bool formatTimeToLocal, int nbMessagesPerFile)
+            List<ViewModels.SimpleUser> slackUserList, String aadAccessToken, String selectedTeamId, bool copyFileAttachments, bool formatTimeToLocal,
+            int nbMessagesPerFile, string fileAttachmentsPath, AttachmentIdFilePathMode attachmentIdMode, string jsonMessagesPath, string htmlMessagesPath)
         {
             var messageList = new List<ViewModels.SimpleMessage>();
             messageList.Clear();
@@ -195,7 +197,7 @@ namespace ChannelSurfCli.Utils
 
             if (copyFileAttachments)
             {
-                Utils.FileAttachments.ArchiveMessageFileAttachments(aadAccessToken, selectedTeamId, attachmentsToUpload, "fileattachments").Wait();
+                Utils.FileAttachments.ArchiveMessageFileAttachments(aadAccessToken, selectedTeamId, attachmentsToUpload, fileAttachmentsPath, attachmentIdMode).Wait();
 
                 foreach (var messageItem in messageList)
                 {
@@ -213,14 +215,14 @@ namespace ChannelSurfCli.Utils
                     }
                 }
             }
-            Utils.Messages.CreateSlackMessageJsonArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, nbMessagesPerFile);
-            Utils.Messages.CreateSlackMessageHtmlArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, slackUserList, formatTimeToLocal, nbMessagesPerFile);
+            Utils.Messages.CreateSlackMessageJsonArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, nbMessagesPerFile, jsonMessagesPath);
+            Utils.Messages.CreateSlackMessageHtmlArchiveFile(basePath, channelsMapping, messageList, aadAccessToken, selectedTeamId, slackUserList, formatTimeToLocal, nbMessagesPerFile, htmlMessagesPath);
 
             return attachmentsToUpload;
         }
 
         static void CreateSlackMessageJsonArchiveFile(String basePath, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleMessage> messageList,
-            String aadAccessToken, string selectedTeamId, int nbMessagesPerFile)
+            String aadAccessToken, string selectedTeamId, int nbMessagesPerFile, string jsonMessagesPath)
         {
             int messageIndexPosition = 0;
 
@@ -250,14 +252,14 @@ namespace ChannelSurfCli.Utils
                         w.WriteLine(jsonObjectsToSave);
                     }
                 }
-                var pathToItem = "/" + channelsMapping.displayName + "/channelsurf/" + "messages/json" + "/" + filenameToAdd;
+                var pathToItem = "/" + channelsMapping.displayName + jsonMessagesPath + filenameToAdd;
                 Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, Path.Combine(basePath, channelsMapping.slackChannelName, filenameToAdd), pathToItem, false).Wait();
             }
             return;
         }
 
         static void CreateSlackMessageHtmlArchiveFile(String basePath, Models.Combined.ChannelsMapping channelsMapping, List<ViewModels.SimpleMessage> messageList,
-            String aadAccessToken, string selectedTeamId, List<ViewModels.SimpleUser> slackUserList, bool formatTimeToLocal, int nbMessagesPerFile)
+            String aadAccessToken, string selectedTeamId, List<ViewModels.SimpleUser> slackUserList, bool formatTimeToLocal, int nbMessagesPerFile, string htmlMessagesPath)
         {
             int messageIndexPosition = 0;
 
@@ -305,7 +307,7 @@ namespace ChannelSurfCli.Utils
                         w.WriteLine(fileBody);
                     }
                 }
-                var pathToItem = "/" + channelsMapping.displayName + "/channelsurf/" + "messages/html" + "/" + filenameToAdd;
+                var pathToItem = "/" + channelsMapping.displayName + htmlMessagesPath + filenameToAdd;
                 Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, Path.Combine(basePath, channelsMapping.slackChannelName, filenameToAdd), pathToItem, true).Wait();
             }
 

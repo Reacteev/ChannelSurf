@@ -11,12 +11,19 @@ using CommandLine;
 
 namespace ChannelSurfCli
 {
+    public enum AttachmentIdFilePathMode
+    {
+        Directory,
+        Prefix,
+        Suffix
+    }
+
     class Options
     {
-        [Option(Default = false, HelpText = "Save auth token in local .token file to avoid going through auth flow.")]
+        [Option("save-token", Default = false, HelpText = "Save auth token in local .token file to avoid going through auth flow.")]
         public bool SaveToken { get; set; }
 
-        [Option(Default = false, HelpText = "Format messages date/time to local timezone.")]
+        [Option("format-time-to-local", Default = false, HelpText = "Format messages date/time to local timezone.")]
         public bool FormatTimeToLocal { get; set; }
 
         [Option(Required = true, HelpText = "Input file to process, either channels.json or full Slack export.")]
@@ -25,8 +32,26 @@ namespace ChannelSurfCli
         [Option(HelpText = "Process only given channel.")]
         public string Only { get; set; }
 
-        [Option(Default = "250", HelpText = "Number of messages to include in each html/json file. If all or negative value provided, all messages will be exported in a single file.")]
+        [Option("nb-messages-per-file", Default = "250", HelpText = "Number of messages to include in each html/json file. If all or negative value provided, all messages will be exported in a single file.")]
         public string NbMessagesPerFile { get; set; }
+
+        [Option("sharepoint-path", Default = "channelsurf", HelpText = "Base path to stored migrated files (both messages and attachments).")]
+        public string SharePointPath { get; set; }
+
+        [Option("attachment-id-mode", Default = AttachmentIdFilePathMode.Directory, HelpText = "Way to put attachment Id in file path. Could be \n  - 'Directory' (default) to create a sub-directory for each attachment Id\n  - Prefix to put Id as prefix in filename\n  - Suffix to put Id as suffix in filename (before extension)")]
+        public AttachmentIdFilePathMode AttachmentIdMode { get; set; }
+
+        [Option("file-attachments-path", Default = "fileattachments", HelpText = "Sub-path inside SharePointPath to store file attachments to.")]
+        public string FileAttachmentsPath { get; set; }
+
+        [Option("messages-path", Default = "messages", HelpText = "Sub-path inside SharePointPath to store messages to.")]
+        public string MessagesPath { get; set; }
+
+        [Option("html-messages-path", Default = "html", HelpText = "Sub-path inside SharePointPath/MessagesPath to store html messages to.")]
+        public string HtmlMessagesPath { get; set; }
+
+        [Option("json-messages-path", Default = "json", HelpText = "Sub-path inside SharePointPath/MessagesPath to store json messages to.")]
+        public string JsonMessagesPath { get; set; }
     }
 
     class Program
@@ -80,7 +105,65 @@ namespace ChannelSurfCli
                         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                         .AddEnvironmentVariables();
                     Configuration = builder.Build();
-                    
+
+                    // Parse command line options
+
+                    var sharepointPath = options.SharePointPath;
+                    if (! sharepointPath.StartsWith("/"))
+                    {
+                        sharepointPath = "/" + sharepointPath;
+                    }
+                    if (sharepointPath.EndsWith("/"))
+                    {
+                        sharepointPath = sharepointPath.Substring(0, sharepointPath.Length - 1);
+                    }
+
+                    var fileAttachmentsPath = options.FileAttachmentsPath;
+                    if (! fileAttachmentsPath.StartsWith("/"))
+                    {
+                        fileAttachmentsPath = "/" + fileAttachmentsPath;
+                    }
+                    fileAttachmentsPath = sharepointPath + fileAttachmentsPath;
+                    if (! fileAttachmentsPath.EndsWith("/"))
+                    {
+                        fileAttachmentsPath = fileAttachmentsPath + "/";
+                    }
+
+                    var messagesPath = options.MessagesPath;
+                    if (! messagesPath.StartsWith("/"))
+                    {
+                        messagesPath = "/" + messagesPath;
+                    }
+                    messagesPath = sharepointPath + messagesPath;
+                    if (! messagesPath.EndsWith("/"))
+                    {
+                        messagesPath = messagesPath + "/";
+                    }
+
+                    var htmlMessagesPath = options.HtmlMessagesPath;
+                    if (htmlMessagesPath.StartsWith("/"))
+                    {
+                        htmlMessagesPath = htmlMessagesPath.Substring(0, htmlMessagesPath.Length - 1);
+                    }
+                    htmlMessagesPath = messagesPath + htmlMessagesPath;
+                    if (! htmlMessagesPath.EndsWith("/"))
+                    {
+                        htmlMessagesPath = htmlMessagesPath + "/";
+                    }
+
+                    var jsonMessagesPath = options.JsonMessagesPath;
+                    if (jsonMessagesPath.StartsWith("/"))
+                    {
+                        jsonMessagesPath = jsonMessagesPath.Substring(0, jsonMessagesPath.Length - 1);
+                    }
+                    jsonMessagesPath = messagesPath + jsonMessagesPath;
+                    if (! jsonMessagesPath.EndsWith("/"))
+                    {
+                        jsonMessagesPath = jsonMessagesPath + "/";
+                    }
+
+                    // Start processing
+
                     Console.WriteLine("");
                     Console.WriteLine("****************************************************************************************************");
                     Console.WriteLine("Welcome to Channel Surf!");
@@ -177,7 +260,7 @@ namespace ChannelSurfCli
                     }
 
                     Console.WriteLine("Creating channels in MS Teams");
-                    var msTeamsChannelsWithSlackProps = Utils.Channels.CreateChannelsInMsTeams(aadAccessToken, selectedTeamId, slackChannelsToMigrate, slackArchiveTempPath);
+                    var msTeamsChannelsWithSlackProps = Utils.Channels.CreateChannelsInMsTeams(aadAccessToken, selectedTeamId, slackChannelsToMigrate, slackArchiveTempPath, sharepointPath);
                     Console.WriteLine("Creating channels in MS Teams - done");
 
                     if (channelsOnly)
@@ -217,7 +300,7 @@ namespace ChannelSurfCli
                         Console.WriteLine("Scanning users in Slack archive - done");
 
                         Console.WriteLine("Scanning messages in Slack channels");
-                        Utils.Messages.ScanMessagesByChannel(msTeamsChannelsWithSlackProps, slackArchiveTempPath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments, options.FormatTimeToLocal, nbMessagesPerFile);
+                        Utils.Messages.ScanMessagesByChannel(msTeamsChannelsWithSlackProps, slackArchiveTempPath, slackUserList, aadAccessToken, selectedTeamId, copyFileAttachments, options.FormatTimeToLocal, nbMessagesPerFile, fileAttachmentsPath, options.AttachmentIdMode, jsonMessagesPath, htmlMessagesPath);
                         Console.WriteLine("Scanning messages in Slack channels - done");
                     }
 

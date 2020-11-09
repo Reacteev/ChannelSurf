@@ -73,7 +73,7 @@ namespace ChannelSurfCli.Utils
             return msTeamsTeam.value;
         }
 
-        public static List<Combined.ChannelsMapping> CreateChannelsInMsTeams(string aadAccessToken, string teamId, List<Slack.Channels> slackChannels, string basePath)
+        public static List<Combined.ChannelsMapping> CreateChannelsInMsTeams(string aadAccessToken, string teamId, List<Slack.Channels> slackChannels, string basePath, string sharepointPath)
         {
             List<Combined.ChannelsMapping> combinedChannelsMapping = new List<Combined.ChannelsMapping>();
 
@@ -148,11 +148,11 @@ namespace ChannelSurfCli.Utils
                 }
                 Thread.Sleep(2000); // pathetic attempt to prevent throttling
             }
-            CreateCombinedChannelsMappingFile(combinedChannelsMapping, aadAccessToken, teamId, basePath);
+            CreateCombinedChannelsMappingFile(combinedChannelsMapping, aadAccessToken, teamId, basePath, sharepointPath);
             return combinedChannelsMapping;
         }
 
-        static void CreateCombinedChannelsMappingFile(List<Models.Combined.ChannelsMapping> channelsMapping, String aadAccessToken, string selectedTeamId, string basePath)
+        static void CreateCombinedChannelsMappingFile(List<Models.Combined.ChannelsMapping> channelsMapping, String aadAccessToken, string selectedTeamId, string basePath, string sharepointPath)
         {
             var jsonFileName = Path.Combine(basePath, "combinedChannelsMapping.json");
             using (FileStream fs = new FileStream(jsonFileName, FileMode.Create))
@@ -162,7 +162,7 @@ namespace ChannelSurfCli.Utils
                      w.WriteLine(JsonConvert.SerializeObject(channelsMapping));
                 }
             }
-            Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, jsonFileName, "/channelsurf/combinedChannelsMapping.json", false).Wait();
+            Utils.FileAttachments.UploadFileToTeamsChannel(aadAccessToken, selectedTeamId, jsonFileName, sharepointPath + "/combinedChannelsMapping.json", false).Wait();
         }
 
         public static string CreateMsTeamsChannelFolder(string aadAccessToken, string teamId, string channelName)

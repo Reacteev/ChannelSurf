@@ -14,7 +14,7 @@ namespace ChannelSurfCli.Utils
     public class FileAttachments
     {
 
-        public static async Task ArchiveMessageFileAttachments(String aadAccessToken, String selectedTeamId, List<Combined.AttachmentsMapping> combinedAttachmentsMapping, string channelSubFolder, int maxDls = 10)
+        public static async Task ArchiveMessageFileAttachments(String aadAccessToken, String selectedTeamId, List<Combined.AttachmentsMapping> combinedAttachmentsMapping, string fileAttachmentsPath, AttachmentIdFilePathMode attachmentIdMode, int maxDls = 10)
         {
             var tasks = new List<Task>();
 
@@ -25,14 +25,14 @@ namespace ChannelSurfCli.Utils
             {
                 // await here until there is a room for this task
                 await semaphore.WaitAsync(); 
-                tasks.Add(GetAndUploadFileToTeamsChannel(aadAccessToken, selectedTeamId, semaphore, v, channelSubFolder));                
+                tasks.Add(GetAndUploadFileToTeamsChannel(aadAccessToken, selectedTeamId, semaphore, v, fileAttachmentsPath, attachmentIdMode));                
             }
 
             // await for the rest of tasks to complete
             await Task.WhenAll(tasks);
         }
 
-        static async Task GetAndUploadFileToTeamsChannel(String aadAccessToken, String selectedTeamId, SemaphoreSlim semaphore, Combined.AttachmentsMapping combinedAttachmentsMapping, string channelSubFolder)
+        static async Task GetAndUploadFileToTeamsChannel(String aadAccessToken, String selectedTeamId, SemaphoreSlim semaphore, Combined.AttachmentsMapping combinedAttachmentsMapping, string fileAttachmentsPath, AttachmentIdFilePathMode attachmentIdMode)
         {
             //string fileId = "";
             Tuple<string,string> fileIdAndUrl;
@@ -40,7 +40,27 @@ namespace ChannelSurfCli.Utils
             {
                 var filename = combinedAttachmentsMapping.attachmentFileName;
                 filename = filename.Replace(":", "-");
-                var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + "/channelsurf/fileattachments/" + combinedAttachmentsMapping.attachmentId + "/" + filename;
+                switch (attachmentIdMode)
+                {
+                    case AttachmentIdFilePathMode.Directory:
+                        filename = combinedAttachmentsMapping.attachmentId + "/" + filename;
+                        break;
+                    case AttachmentIdFilePathMode.Prefix:
+                        filename = "(" + combinedAttachmentsMapping.attachmentId + ") " + filename;
+                        break;
+                    case AttachmentIdFilePathMode.Suffix:
+                        var extensionIndex = filename.LastIndexOf(".");
+                        if (extensionIndex < 0)
+                        {
+                            filename = filename + " (" + combinedAttachmentsMapping.attachmentId + ")";
+                        }
+                        else
+                        {
+                            filename = filename.Substring(0, extensionIndex) + " (" + combinedAttachmentsMapping.attachmentId + ")" + filename.Substring(extensionIndex);
+                        }
+                        break;
+                }
+                var pathToItem = "/" + combinedAttachmentsMapping.msChannelName + fileAttachmentsPath + filename;
 
                 bool deleteFile = true;
                 string fileToUpload = "";
